@@ -1,0 +1,15 @@
+@startuml
+!include ../C4_Context.puml
+LAYOUT_WITH_LEGEND()
+
+title Warm house company context diagram
+
+Person(user, "Warm House company user", "Remotely controls the heating in the house")
+
+System(warmhouse_system, "Warm House System", "Allows users to remotely control the heating in the house and check the temperature.")
+System_Ext(warmhouse_device, "Temperature sensors", "Temperature monitoring devices")
+
+Rel_Neighbor(user, warmhouse_system, "Requests", "HTTP")
+Rel_Neighbor(warmhouse_system, warmhouse_device, "Requests", "HTTP")
+
+@enduml
