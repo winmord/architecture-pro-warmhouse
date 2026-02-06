@@ -1,0 +1,108 @@
+@startuml
+
+title ER Diagram
+
+entity "User" {
+  *id : UUID <<PK>>
+  --
+  email : VARCHAR(255) <<UNIQUE>> <<NOT NULL>>
+  password_hash : VARCHAR(255) <<NOT NULL>>
+  full_name : VARCHAR(255)
+  phone : VARCHAR(20)
+  created_at : TIMESTAMP <<NOT NULL>>
+  updated_at : TIMESTAMP
+  is_active : BOOLEAN <<NOT NULL>> <<DEFAULT true>>
+}
+
+entity "Device" {
+  *id : UUID <<PK>>
+  *user_id : UUID <<FK>>
+  --
+  external_id : VARCHAR(100) <<UNIQUE>>
+  name : VARCHAR(255) <<NOT NULL>>
+  type : ENUM('thermostat', 'light', 'outlet', 'sensor', 'gate_controller', 'camera') <<NOT NULL>>
+  protocol : ENUM('mqtt', 'zigbee', 'zwave', 'wifi') <<NOT NULL>>
+  model : VARCHAR(100)
+  manufacturer : VARCHAR(100)
+  location : VARCHAR(255)
+  status : ENUM('online', 'offline', 'error') <<NOT NULL>> <<DEFAULT 'offline'>>
+  connected_at : TIMESTAMP <<NOT NULL>>
+  last_seen_at : TIMESTAMP
+  configuration : JSON
+}
+
+entity "SensorReading" {
+  *id : BIGINT <<PK>>
+  *device_id : UUID <<FK>>
+  --
+  reading_type : ENUM('temperature', 'humidity', 'brightness', 'motion', 'power_consumption') <<NOT NULL>>
+  value : DECIMAL(10,2) <<NOT NULL>>
+  unit : VARCHAR(20)
+  recorded_at : TIMESTAMP <<NOT NULL>>
+  accuracy : DECIMAL(5,2)
+  metadata : JSON
+}
+
+entity "Scenario" {
+  *id : UUID <<PK>>
+  *user_id : UUID <<FK>>
+  --
+  name : VARCHAR(255) <<NOT NULL>>
+  description : TEXT
+  type : ENUM('manual', 'automatic', 'scheduled') <<NOT NULL>>
+  is_active : BOOLEAN <<NOT NULL>> <<DEFAULT true>>
+  priority : INTEGER <<DEFAULT 0>>
+  created_at : TIMESTAMP <<NOT NULL>>
+  updated_at : TIMESTAMP
+  config : JSON
+}
+
+entity "ScenarioRule" {
+  *id : UUID <<PK>>
+  *scenario_id : UUID <<FK>>
+  --
+  condition_type : ENUM('time', 'device', 'weather', 'combined') <<NOT NULL>>
+  condition_config : JSON <<NOT NULL>>
+  action_config : JSON <<NOT NULL>>
+  execution_order : INTEGER <<NOT NULL>>
+  delay_seconds : INTEGER
+  is_active : BOOLEAN <<NOT NULL>> <<DEFAULT true>>
+}
+
+entity "DeviceEvent" {
+  *id : BIGINT <<PK>>
+  *device_id : UUID <<FK>>
+  --
+  event_type : ENUM('status_changed', 'command_sent', 'command_executed', 'error') <<NOT NULL>>
+  event_data : JSON <<NOT NULL>>
+  created_at : TIMESTAMP <<NOT NULL>>
+  is_read : BOOLEAN <<DEFAULT false>>
+  severity : ENUM('low', 'medium', 'high', 'critical')
+}
+
+entity "DeviceCommand" {
+  *id : UUID <<PK>>
+  *device_id : UUID <<FK>>
+  *source_id : UUID <<FK>>  ' can be user or scenario
+  source_type : ENUM('user', 'scenario', 'system') <<NOT NULL>>
+  --
+  command : VARCHAR(100) <<NOT NULL>>
+  parameters : JSON
+  status : ENUM('sent', 'delivered', 'executed', 'failed', 'canceled') <<NOT NULL>> <<DEFAULT 'sent'>>
+  sent_at : TIMESTAMP <<NOT NULL>>
+  executed_at : TIMESTAMP
+  result : JSON
+  priority : INTEGER <<DEFAULT 0>>
+}
+
+
+User ||--o{ Device : "owns"
+Device ||--o{ SensorReading : "generates"
+User ||--o{ Scenario : "creates"
+Scenario ||--o{ ScenarioRule : "contains"
+Device ||--o{ DeviceEvent : "generates"
+Device ||--o{ DeviceCommand : "receives"
+ScenarioRule }o--|| DeviceCommand : "generates"
+User }o--o{ DeviceCommand : "sends"
+
+@enduml
