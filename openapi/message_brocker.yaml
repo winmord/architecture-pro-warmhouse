@@ -1,0 +1,195 @@
+asyncapi: 2.6.0
+info:
+  title: Message Broker API
+  version: 1.0.0
+  description: Asynchronous communication between microservices via RabbitMQ
+
+servers:
+  production:
+    url: amqps://rabbitmq.warmhouse.ru:5671
+    protocol: amqp
+    description: Production RabbitMQ server
+    security:
+      - userPassword: []
+
+  development:
+    url: amqp://localhost:5672
+    protocol: amqp
+    description: Local development server
+
+channels:
+  device.telemetry:
+    description: Channel for device telemetry data
+    publish:
+      message:
+        $ref: '#/components/messages/TelemetryMessage'
+
+  device.events:
+    description: Channel for device events
+    subscribe:
+      message:
+        $ref: '#/components/messages/DeviceEventMessage'
+
+  device.commands:
+    description: Channel for device commands
+    publish:
+      message:
+        $ref: '#/components/messages/DeviceCommandMessage'
+
+  scenario.triggers:
+    description: Channel for scenario triggers
+    subscribe:
+      message:
+        $ref: '#/components/messages/ScenarioTriggerMessage'
+
+  notification.alerts:
+    description: Channel for notifications and alerts
+    publish:
+      message:
+        $ref: '#/components/messages/NotificationMessage'
+
+components:
+  securitySchemes:
+    userPassword:
+      type: userPassword
+
+  messages:
+    TelemetryMessage:
+      name: telemetryMessage
+      title: Telemetry Data
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/TelemetryData'
+
+    DeviceEventMessage:
+      name: deviceEventMessage
+      title: Device Event
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeviceEvent'
+
+    DeviceCommandMessage:
+      name: deviceCommandMessage
+      title: Device Command
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/DeviceCommand'
+
+    ScenarioTriggerMessage:
+      name: scenarioTriggerMessage
+      title: Scenario Trigger
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ScenarioTrigger'
+
+    NotificationMessage:
+      name: notificationMessage
+      title: Notification
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/Notification'
+
+  schemas:
+    TelemetryData:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        readings:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              value:
+                type: number
+              unit:
+                type: string
+
+    DeviceEvent:
+      type: object
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          enum: [status_changed, command_sent, command_executed, error]
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object
+
+    DeviceCommand:
+      type: object
+      properties:
+        command_id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        command:
+          type: string
+        parameters:
+          type: object
+        priority:
+          type: integer
+        source:
+          type: string
+          enum: [user, scenario, system]
+        source_id:
+          type: string
+
+    ScenarioTrigger:
+      type: object
+      properties:
+        trigger_id:
+          type: string
+          format: uuid
+        scenario_id:
+          type: string
+          format: uuid
+        trigger_type:
+          type: string
+          enum: [time, device_event, manual]
+        timestamp:
+          type: string
+          format: date-time
+        context:
+          type: object
+
+    Notification:
+      type: object
+      properties:
+        notification_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [info, warning, error, success]
+        title:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        read:
+          type: boolean
+          default: false
