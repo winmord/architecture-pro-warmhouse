@@ -1,36 +1,44 @@
 @startuml
-!include ../C4_Context.puml
 !include ../C4_Container.puml
 
-LAYOUT_WITH_LEGEND()
+Person(user, "User", "Client of «Warm house» company")
+System_Boundary(platform, "«Warm house» System") {
+    Container(web_app, "Web Application", "Java", "Web app for smart home management, authentication, request routing")
+    Container(device_service, "Smart Device Lifecycle Management", "Go", "Registration, lifecycle, and state of all connected devices")
+    Container(telemetry_service, "Telemetry Service", "Python", "Collection, aggregation, and storage of streaming sensor data")
+    Container(orchestrator_service, "Smart Device Orchestrator", "Java", "Execution of user commands and scenarios")
+    Container(user_service, "User Access Management", "Java", "Account and access rights management")
+    Container(device_gateway, "Smart Device Gateway", "Go", "Gateway for communication with partner smart devices using standard protocols")
 
-title Warm house company context diagram
+    ContainerQueue(message_broker, "Asynchronous Event Bus", "RabbitMQ", "Orchestrates asynchronous service interaction")
 
-Person(user, "Warm House company user", "Remotely controls the house systems")
+    ContainerDb(device_db, "Smart Device Database", "PostgreSQL", "Storage for device metadata, models, state")
+    ContainerDb(telemetry_db, "Telemetry Database", "PostgreSQL", "Database for smart device sensor readings")
+    ContainerDb(user_db, "User Database", "PostgreSQL", "Storage for user accounts")
 
-System_Boundary(c0, "Warm House System") {
-    Container(web_app, "Web Application", "Java, Spring", "Handles user interactions")
-    Container(heating_control_service, "Heating control service", "Go", "Controls heating")
-    Container(light_control_service, "Light control service", "Python", "Controls light")
-    Container(gate_control_service, "Gate control service", "Java", "Controls gates")
-    Container(device_management_service, "Device management", "Go", "Adding, changing and deleting of devices")
-    Container(telemetry_service, "Telemetry", "Python", "Telemetry receiving")
-    ContainerDb(database, "Database", "PostgreSQL", "Stores user data")
-
-'    System(warmhouse_system, "Warm House System", "Allows users to remotely control the heating in the house and check the temperature.")
-'    System_Ext(warmhouse_device, "Temperature sensors", "Temperature monitoring devices")
 }
 
-Container_Ext(heating_devices, "External heating devices")
+System_Ext(partner_device, "Partner Device", "Smart devices (thermostat, light bulb, gate actuator, etc.)")
 
-Rel_Down(user, web_app, "Requests", "HTTP")
-Rel_Down(web_app, heating_control_service, "Process heating control requests")
-Rel_Down(web_app, light_control_service, "Process light control requests")
-Rel_Down(web_app, gate_control_service, "Process gate control requests")
-Rel_Down(web_app, device_management_service, "Process managing requests")
-Rel_Down(web_app, telemetry_service, "Process telemetry requests")
-Rel_Left(heating_control_service, heating_devices, "Outer heating control requests")
-Rel_Down(device_management_service, database, "Reads/Writes user data", "SQL")
-'Rel_Neighbor(warmhouse_system, warmhouse_device, "Requests", "HTTP")
+Rel(user, web_app, "Uses the system", "HTTPS")
+
+Rel(web_app, user_service, "Validates access via", "gRPC")
+Rel(web_app, device_service, "Manages devices via", "REST")
+Rel(web_app, telemetry_service, "Requests telemetry via", "REST")
+Rel(web_app, orchestrator_service, "Manages scenarios via", "REST")
+
+Rel(device_gateway, message_broker, "Publishes device events to", "AMQP")
+Rel(message_broker, device_gateway, "Receives device commands from", "AMQP")
+Rel(message_broker, telemetry_service, "Delivers telemetry to", "")
+Rel(message_broker, orchestrator_service, "Triggers rules from", "")
+Rel(orchestrator_service, message_broker, "Publishes device commands to", "")
+Rel(message_broker, device_service, "Updates device state via", "")
+
+Rel(device_service, device_db, "Reads/Writes", "SQL")
+Rel(telemetry_service, telemetry_db, "Saves readings to", "SQL")
+Rel(user_service, user_db, "Reads/Writes", "SQL")
+
+Rel(device_gateway, partner_device, "Manages", "Standard smart device communication protocols")
+Rel(partner_device, device_gateway, "Sends device events to", "Standard smart device communication protocols")
 
 @enduml

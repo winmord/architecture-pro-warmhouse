@@ -1,0 +1,29 @@
+@startuml
+!include ../C4_Component.puml
+
+title Component Diagram: Web Application
+
+Container(web_app, "Web Application", "Java", "Web application for smart home management")
+
+System_Boundary(web_app_boundary, "Web Application") {
+    Component(controllers, "Controllers", "Spring MVC", "HTTP request handling")
+    Component(services, "Services", "Spring", "Business logic")
+    Component(templates, "Templates", "Thymeleaf", "HTML templates")
+    Component(api_clients, "API Clients", "RestTemplate/gRPC", "Microservice clients")
+}
+
+Container(user_service, "User Access Management", "Java", "External service")
+Container(device_service, "Smart Device Lifecycle Management", "Go", "External service")
+Container(telemetry_service, "Telemetry Service", "Python", "External service")
+Container(orchestrator_service, "Smart Device Orchestration", "Java", "External service")
+
+
+Rel(controllers, services, "Calls", "")
+Rel(controllers, templates, "Renders", "")
+Rel(services, api_clients, "Uses", "")
+
+Rel(api_clients, user_service, "Validates access via", "gRPC")
+Rel(api_clients, device_service, "Manages devices via", "REST")
+Rel(api_clients, telemetry_service, "Requests telemetry via", "REST")
+Rel(api_clients, orchestrator_service, "Manages scenarios via", "REST")
+@enduml

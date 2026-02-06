@@ -1,0 +1,25 @@
+@startuml
+!include ../C4_Component.puml
+
+title Component Diagram: Telemetry
+
+Container(telemetry_service, "Telemetry Service", "Python", "Sensor data collection and storage")
+
+System_Boundary(telemetry_service_boundary, "Telemetry Service") {
+    Component(api, "REST API", "FastAPI", "API for telemetry queries")
+    Component(processor, "Processor", "Python", "Processing and aggregation")
+    Component(ingestor, "Consumer", "Python", "Data ingestion")
+}
+
+ContainerDb(telemetry_db, "Telemetry Database", "PostgreSQL", "External Database")
+ContainerQueue(message_broker, "Asynchronous Event Bus", "RabbitMQ", "External broker")
+Container(web_app, "Web Application", "Java", "External client")
+
+Rel(web_app, api, "Requests data", "REST")
+
+Rel(api, processor, "Requests data", "")
+Rel(ingestor, processor, "Passes data", "")
+Rel(processor, telemetry_db, "Saves readings", "SQL")
+
+Rel(message_broker, ingestor, "Delivers telemetry", "AMQP")
+@enduml

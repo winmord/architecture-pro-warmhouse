@@ -1,5 +1,3 @@
-# Project_template
-
 # Задание 1. Анализ и планирование
 
 ### 1. Описание функциональности монолитного приложения
@@ -49,15 +47,20 @@
 
 **Диаграмма контейнеров (Containers)**
 
-Добавьте диаграмму.
+![container_diagram](diagrams/container/container.png)
 
 **Диаграмма компонентов (Components)**
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+![component_diagram](diagrams/component/component_device_gateway.png)
+![component_diagram](diagrams/component/component_device_service.png)
+![component_diagram](diagrams/component/component_orchestrator_service.png)
+![component_diagram](diagrams/component/component_telemetry_service.png)
+![component_diagram](diagrams/component/component_user_service.png)
+![component_diagram](diagrams/component/component_web_app.png)
 
 **Диаграмма кода (Code)**
 
-Добавьте одну диаграмму или несколько.
+![code_diagram](diagrams/code/code_device_gateway.png)
 
 # Задание 3. Разработка ER-диаграммы
 

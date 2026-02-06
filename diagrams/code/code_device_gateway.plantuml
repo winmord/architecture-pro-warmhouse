@@ -1,0 +1,35 @@
+@startuml
+title Key Components of Smart Device Gateway (Go)
+
+class MessageRouter {
+  + RouteMessage(msg: DeviceMessage): error
+  + RegisterAdapter(protocol: string, adapter: DeviceAdapter)
+}
+
+interface DeviceAdapter {
+  + Connect(deviceID: string): error
+  + SendCommand(cmd: DeviceCommand): error
+  + Receive(): <-chan DeviceMessage
+}
+
+class MQTTAdapter {
+  + Connect(deviceID: string): error
+  + Subscribe(topic: string): error
+  + Publish(topic, message: string): error
+}
+
+class DeviceManager {
+  + AddDevice(device: DeviceInfo): error
+  + GetDeviceStatus(deviceID: string): DeviceStatus
+}
+
+class AMQPClient {
+  + Publish(queue: string, data: []byte): error
+  + Consume(queue: string): <-chan AMQPMessage
+}
+
+MessageRouter "1" *-- "*" DeviceAdapter
+MQTTAdapter ..|> DeviceAdapter
+DeviceManager "1" *-- "1" MessageRouter
+AMQPClient --> MessageRouter : sends/receives messages
+@enduml

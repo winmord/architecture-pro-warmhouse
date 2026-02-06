@@ -1,0 +1,21 @@
+@startuml
+!include ../C4_Component.puml
+
+title Component Diagram: Smart Device Orchestration
+
+Container(orchestrator_service, "Smart Device Orchestration", "Java", "Scenario execution")
+
+System_Boundary(orchestrator_boundary, "Orchestrator Service") {
+    Component(api, "REST API", "Spring MVC", "API for scenario management")
+    Component(engine, "Rules Engine", "Java", "Scenario execution")
+    Component(dispatcher, "Dispatcher", "Java", "Command dispatching")
+}
+
+ContainerQueue(message_broker, "Asynchronous Event Bus", "RabbitMQ", "External broker")
+
+Rel(api, engine, "Manages scenarios", "")
+Rel(engine, dispatcher, "Sends commands", "")
+
+Rel(message_broker, engine, "Triggers rules", "AMQP")
+Rel(dispatcher, message_broker, "Publishes commands", "AMQP")
+@enduml

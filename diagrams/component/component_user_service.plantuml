@@ -1,0 +1,19 @@
+@startuml
+!include ../C4_Component.puml
+
+title Component Diagram: User Access Management
+
+Container(user_service, "User Access Management", "Java", "Authentication and Authorization")
+
+System_Boundary(user_service_boundary, "User Service") {
+    Component(api, "gRPC API", "gRPC", "API for access verification")
+    Component(auth, "Authentication", "Spring Security", "Credential verification")
+    Component(repository, "Repository", "Spring Data", "Data access")
+}
+
+ContainerDb(user_db, "User Database", "PostgreSQL", "External Database")
+
+Rel(api, auth, "Verifies access", "")
+Rel(auth, repository, "Requests data", "")
+Rel(repository, user_db, "Reads/Writes", "SQL")
+@enduml

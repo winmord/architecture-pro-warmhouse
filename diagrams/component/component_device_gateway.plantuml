@@ -1,0 +1,25 @@
+@startuml
+!include ../C4_Component.puml
+
+title Component Diagram: Smart Device Gateway
+
+Container(device_gateway, "Smart Device Gateway", "Go", "Communication with partner devices")
+
+System_Boundary(gateway_boundary, "Device Gateway") {
+    Component(adapters, "Adapters", "Go", "Protocol adapters")
+    Component(router, "Router", "Go", "Message routing")
+    Component(connector, "Connector", "Go", "Connection management")
+}
+
+ContainerQueue(message_broker, "Asynchronous Event Bus", "RabbitMQ", "External broker")
+System_Ext(partner_device, "Partner Device", "Smart devices")
+
+Rel(adapters, router, "Passes messages", "")
+Rel(router, connector, "Determines connection", "")
+
+Rel(adapters, partner_device, "Manages", "Standard protocols for communicating with smart devices")
+Rel(partner_device, adapters, "Sends events", "Standard protocols for communicating with smart devices")
+
+Rel(router, message_broker, "Publishes device events", "AMQP")
+Rel(message_broker, router, "Receives device commands", "AMQP")
+@enduml
