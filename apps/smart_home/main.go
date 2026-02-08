@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
-	"time"
-
 	"smarthome/db"
 	"smarthome/handlers"
+	"smarthome/integration"
 	"smarthome/services"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,8 +45,17 @@ func main() {
 	// API routes
 	apiRoutes := router.Group("/api/v1")
 
+	// RabbitMQ integration
+	rabbitConn, rabbitChannel := integration.InitializeRabbitMQ()
+	if rabbitConn != nil && rabbitChannel != nil {
+		defer integration.CloseRabbitMQ()
+		log.Println("RabbitMQ initialized successfully")
+	} else {
+		log.Println("Failed to initialize RabbitMQ")
+	}
+
 	// Register sensor routes
-	sensorHandler := handlers.NewSensorHandler(database, temperatureService)
+	sensorHandler := handlers.NewSensorHandler(database, temperatureService, rabbitChannel)
 	sensorHandler.RegisterRoutes(apiRoutes)
 
 	// Start server

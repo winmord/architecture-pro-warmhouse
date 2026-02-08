@@ -5,26 +5,28 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
-
 	"smarthome/db"
 	"smarthome/models"
 	"smarthome/services"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // SensorHandler handles sensor-related requests
 type SensorHandler struct {
 	DB                 *db.DB
 	TemperatureService *services.TemperatureService
+	RabbitChannel      *amqp.Channel
 }
 
 // NewSensorHandler creates a new SensorHandler
-func NewSensorHandler(db *db.DB, temperatureService *services.TemperatureService) *SensorHandler {
+func NewSensorHandler(db *db.DB, temperatureService *services.TemperatureService, rabbitChannel *amqp.Channel) *SensorHandler {
 	return &SensorHandler{
 		DB:                 db,
 		TemperatureService: temperatureService,
+		RabbitChannel:      rabbitChannel,
 	}
 }
 

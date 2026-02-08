@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: smarthome-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d mydb" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./smart_home/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - smarthome-network
+
+  temperature-api:
+    build:
+      context: ./temperatureapi
+      dockerfile: Dockerfile
+    container_name: temperature-api
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+#  app:
+#    build:
+#      context: ./smart_home
+#      dockerfile: Dockerfile
+#    container_name: smarthome-app
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#      temperature-api:
+#        condition: service_started
+#    environment:
+#      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/smarthome
+#      - TEMPERATURE_API_URL=http://temperature-api:8081
+#    ports:
+#      - "8080:8080"
+#    restart: unless-stopped
+#    networks:
+#      - smarthome-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: pass
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - smarthome-network
+
+  device-service:
+    build:
+      context: ./device-service
+      dockerfile: Dockerfile
+    container_name: device-service
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    environment:
+      RABBITMQ_HOST: rabbitmq
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+  telemetry-service:
+    build:
+      context: ./telemetry-service
+      dockerfile: Dockerfile
+    container_name: telemetry-service
+    depends_on:
+      rabbitmq:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+    networks:
+      - smarthome-network
+
+volumes:
+  postgres_data:
+
+networks:
+  smarthome-network:
+    driver: bridge

@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List, Optional
@@ -20,7 +21,7 @@ class Storage:
             "type": reading_type,
             "value": value,
             "unit": unit,
-            "time": datetime.utcnow().isoformat()
+            "time": datetime.now().isoformat()
         }
         self.data.append(item)
         self.next_id += 1
@@ -62,7 +63,10 @@ class RabbitConsumer:
 
     async def start(self):
         try:
-            connection = await aio_pika.connect_robust("amqp://user:pass@localhost:5672/")
+            rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
+            rabbitmq_url = f"amqp://user:pass@{rabbitmq_host}:5672/"
+
+            connection = await aio_pika.connect_robust(rabbitmq_url)
             channel = await connection.channel()
 
             exchange = await channel.declare_exchange("device.exchange", aio_pika.ExchangeType.TOPIC)
