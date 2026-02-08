@@ -1,188 +1,149 @@
 asyncapi: 2.6.0
 info:
-  title: Message Broker API
+  title: Smart Device Service Message API
   version: 1.0.0
-  description: Asynchronous communication between microservices via RabbitMQ
+  description: Asynchronous communication for Smart Device Service
 
 servers:
   production:
-    url: amqps://rabbitmq.warmhouse.com:5671
+    url: amqp://localhost:5672
     protocol: amqp
-    description: RabbitMQ server
+    description: Local RabbitMQ server
 
 channels:
-  device.telemetry:
-    description: Channel for device telemetry data
-    publish:
-      message:
-        $ref: '#/components/messages/TelemetryMessage'
-
-  device.events:
-    description: Channel for device events
-    subscribe:
-      message:
-        $ref: '#/components/messages/DeviceEventMessage'
-
   device.commands:
-    description: Channel for device commands
+    description: Channel for sending commands to devices
     publish:
       message:
         $ref: '#/components/messages/DeviceCommandMessage'
 
-  scenario.triggers:
-    description: Channel for scenario triggers
+  device.events:
+    description: Channel for receiving device events
     subscribe:
       message:
-        $ref: '#/components/messages/ScenarioTriggerMessage'
+        $ref: '#/components/messages/DeviceEventMessage'
 
-  notification.alerts:
-    description: Channel for notifications and alerts
+  device.telemetry:
+    description: Channel for receiving telemetry data
+    subscribe:
+      message:
+        $ref: '#/components/messages/TelemetryMessage'
+
+  scenario.execution:
+    description: Channel for scenario execution events
     publish:
       message:
-        $ref: '#/components/messages/NotificationMessage'
+        $ref: '#/components/messages/ScenarioExecutionMessage'
 
 components:
-  securitySchemes:
-    userPassword:
-      type: userPassword
-
   messages:
-    TelemetryMessage:
-      name: telemetryMessage
-      title: Telemetry Data
+    DeviceCommandMessage:
+      name: deviceCommandMessage
+      title: Device Command
+      summary: Command sent from Smart Device Service to Device Gateway
       contentType: application/json
       payload:
-        $ref: '#/components/schemas/TelemetryData'
+        type: object
+        properties:
+          commandId:
+            type: string
+            format: uuid
+            description: Unique command identifier
+          deviceId:
+            type: string
+            format: uuid
+            description: Target device identifier
+          command:
+            type: string
+            description: Command name (e.g., turn_on, set_temperature)
+          parameters:
+            type: object
+            additionalProperties: true
+            description: Command parameters
+          sourceType:
+            type: string
+            enum: [user, scenario, system]
+            description: Source of the command
+          sourceId:
+            type: string
+            format: uuid
+            description: ID of the source (user or scenario)
+          priority:
+            type: integer
+            minimum: 0
+            maximum: 10
+            default: 0
+            description: Command priority
+          timestamp:
+            type: integer
+            format: int64
+            description: Unix timestamp in milliseconds
 
     DeviceEventMessage:
       name: deviceEventMessage
       title: Device Event
+      summary: Event from Device Gateway about device status
       contentType: application/json
       payload:
-        $ref: '#/components/schemas/DeviceEvent'
-
-    DeviceCommandMessage:
-      name: deviceCommandMessage
-      title: Device Command
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/DeviceCommand'
-
-    ScenarioTriggerMessage:
-      name: scenarioTriggerMessage
-      title: Scenario Trigger
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/ScenarioTrigger'
-
-    NotificationMessage:
-      name: notificationMessage
-      title: Notification
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/Notification'
-
-  schemas:
-    TelemetryData:
-      type: object
-      properties:
-        event_id:
-          type: string
-          format: uuid
-        device_id:
-          type: string
-          format: uuid
-        timestamp:
-          type: string
-          format: date-time
-        readings:
-          type: array
-          items:
+        type: object
+        properties:
+          eventId:
+            type: string
+            format: uuid
+          deviceId:
+            type: string
+            format: uuid
+          eventType:
+            type: string
+            enum: [status_changed, command_executed, command_failed, error]
+          data:
             type: object
-            properties:
-              type:
-                type: string
-              value:
-                type: number
-              unit:
-                type: string
+            additionalProperties: true
+          timestamp:
+            type: integer
+            format: int64
 
-    DeviceEvent:
-      type: object
-      properties:
-        event_id:
-          type: string
-          format: uuid
-        device_id:
-          type: string
-          format: uuid
-        event_type:
-          type: string
-          enum: [status_changed, command_sent, command_executed, error]
-        timestamp:
-          type: string
-          format: date-time
-        data:
-          type: object
+    TelemetryMessage:
+      name: telemetryMessage
+      title: Telemetry Data
+      summary: Telemetry data from devices
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          deviceId:
+            type: string
+            format: uuid
+          sensorType:
+            type: string
+          value:
+            type: number
+          unit:
+            type: string
+          timestamp:
+            type: integer
+            format: int64
 
-    DeviceCommand:
-      type: object
-      properties:
-        command_id:
-          type: string
-          format: uuid
-        device_id:
-          type: string
-          format: uuid
-        command:
-          type: string
-        parameters:
-          type: object
-        priority:
-          type: integer
-        source:
-          type: string
-          enum: [user, scenario, system]
-        source_id:
-          type: string
-
-    ScenarioTrigger:
-      type: object
-      properties:
-        trigger_id:
-          type: string
-          format: uuid
-        scenario_id:
-          type: string
-          format: uuid
-        trigger_type:
-          type: string
-          enum: [time, device_event, manual]
-        timestamp:
-          type: string
-          format: date-time
-        context:
-          type: object
-
-    Notification:
-      type: object
-      properties:
-        notification_id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        type:
-          type: string
-          enum: [info, warning, error, success]
-        title:
-          type: string
-        message:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
-        read:
-          type: boolean
-          default: false
+    ScenarioExecutionMessage:
+      name: scenarioExecutionMessage
+      title: Scenario Execution Event
+      summary: Event when scenario is executed
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          scenarioId:
+            type: string
+            format: uuid
+          userId:
+            type: string
+            format: uuid
+          executionId:
+            type: string
+            format: uuid
+          status:
+            type: string
+            enum: [started, completed, failed]
+          timestamp:
+            type: integer
+            format: int64
