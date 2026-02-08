@@ -103,6 +103,6 @@ Scenario ||--o{ ScenarioRule : "contains"
 Device ||--o{ DeviceEvent : "generates"
 Device ||--o{ DeviceCommand : "receives"
 ScenarioRule }o--|| DeviceCommand : "generates"
-User }o--o{ DeviceCommand : "sends"
+User }|--o{ DeviceCommand : "sends"
 
 @enduml

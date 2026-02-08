@@ -1,0 +1,82 @@
+@startuml
+title Device Service Code Diagram
+
+class DeviceServiceApplication {
++ main(String[] args)
+}
+
+class DeviceService {
+- devices: Map<String, Device>
+- rabbitTemplate: RabbitTemplate
++ createDevice(userId, request)
++ getUserDevices(userId, filters)
++ updateDeviceStatus(deviceId, statusUpdate)
++ publishDeviceEvent(deviceId, eventType, data)
+}
+
+class DeviceController {
+- deviceService: DeviceService
++ getDevices(userId, includeStatus, deviceType, status)
++ createDevice(userId, request)
++ getDevice(userId, deviceId)
++ updateDevice(userId, deviceId, request)
++ deleteDevice(userId, deviceId)
++ getDeviceStatus(userId, deviceId)
+}
+
+class DeviceEventListener {
+- deviceService: DeviceService
++ handleDeviceCommand(deviceCommand)
++ handleScenarioTrigger(scenarioTrigger)
+}
+
+class DeviceEventPublisher {
++ publishDeviceCreated(device)
++ publishDeviceStatusChanged(deviceId, oldStatus, newStatus)
++ publishDeviceEvent(event)
+}
+
+class Device {
++ id: String
++ userId: String
++ externalId: String
++ name: String
++ type: String
++ protocol: String
++ status: String
++ location: String
++ connectedAt: LocalDateTime
++ lastSeenAt: LocalDateTime
+}
+
+class CreateDeviceRequest {
++ externalId: String
++ name: String
++ type: String
++ protocol: String
++ location: String
+}
+
+class DeviceCommand {
++ commandId: String
++ deviceId: String
++ command: String
++ parameters: Map<String, Object>
++ priority: Integer
++ source: String
++ sourceId: String
+}
+
+DeviceServiceApplication --> DeviceController : creates
+DeviceServiceApplication --> DeviceService : creates
+DeviceServiceApplication --> DeviceEventListener : creates
+DeviceServiceApplication --> DeviceEventPublisher : creates
+
+DeviceController --> DeviceService : calls
+DeviceEventListener --> DeviceService : calls
+DeviceService --> DeviceEventPublisher : calls
+DeviceService --> Device : uses
+DeviceController --> CreateDeviceRequest : uses
+DeviceEventListener --> DeviceCommand : uses
+
+@enduml

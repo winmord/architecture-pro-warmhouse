@@ -60,7 +60,7 @@
 
 **Диаграмма кода (Code)**
 
-![code_diagram](diagrams/code/code_device_gateway.png)
+![code_diagram](diagrams/code/code_device_service.png)
 
 # Задание 3. Разработка ER-диаграммы
 
@@ -78,9 +78,9 @@
 
 ### 2. Документация API
 
-- [device_service](openapi/device_management.yaml)
+- [device_management](openapi/device_management.yaml)
+- [device_service](openapi/device_service.yaml)
 - [message_brocker](openapi/message_brocker.yaml)
-- [orchestrator_service](openapi/device_service.yaml)
 - [telemetry_service](openapi/telemetry_service.yaml)
 - [user_service_proto](openapi/user_service.proto)
 - [user_service](openapi/user_service.yaml)
