@@ -6,16 +6,9 @@ info:
 
 servers:
   production:
-    url: amqps://rabbitmq.warmhouse.ru:5671
+    url: amqps://rabbitmq.warmhouse.com:5671
     protocol: amqp
-    description: Production RabbitMQ server
-    security:
-      - userPassword: []
-
-  development:
-    url: amqp://localhost:5672
-    protocol: amqp
-    description: Local development server
+    description: RabbitMQ server
 
 channels:
   device.telemetry:

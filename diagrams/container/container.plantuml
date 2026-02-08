@@ -4,9 +4,9 @@
 Person(user, "User", "Client of «Warm house» company")
 System_Boundary(platform, "«Warm house» System") {
     Container(web_app, "Web Application", "Java", "Web app for smart home management, authentication, request routing")
-    Container(device_service, "Smart Device Lifecycle Management", "Go", "Registration, lifecycle, and state of all connected devices")
+    Container(device_management, "Smart Device Lifecycle Management", "Go", "Registration, lifecycle, and state of all connected devices")
     Container(telemetry_service, "Telemetry Service", "Python", "Collection, aggregation, and storage of streaming sensor data")
-    Container(orchestrator_service, "Smart Device Orchestrator", "Java", "Execution of user commands and scenarios")
+    Container(device_service, "Smart Device Service", "Java", "Execution of user commands and scenarios")
     Container(user_service, "User Access Management", "Java", "Account and access rights management")
     Container(device_gateway, "Smart Device Gateway", "Go", "Gateway for communication with partner smart devices using standard protocols")
 
@@ -23,18 +23,18 @@ System_Ext(partner_device, "Partner Device", "Smart devices (thermostat, light b
 Rel(user, web_app, "Uses the system", "HTTPS")
 
 Rel(web_app, user_service, "Validates access via", "gRPC")
-Rel(web_app, device_service, "Manages devices via", "REST")
+Rel(web_app, device_management, "Manages devices via", "REST")
 Rel(web_app, telemetry_service, "Requests telemetry via", "REST")
-Rel(web_app, orchestrator_service, "Manages scenarios via", "REST")
+Rel(web_app, device_service, "Manages scenarios via", "REST")
 
 Rel(device_gateway, message_broker, "Publishes device events to", "AMQP")
 Rel(message_broker, device_gateway, "Receives device commands from", "AMQP")
 Rel(message_broker, telemetry_service, "Delivers telemetry to", "")
-Rel(message_broker, orchestrator_service, "Triggers rules from", "")
-Rel(orchestrator_service, message_broker, "Publishes device commands to", "")
-Rel(message_broker, device_service, "Updates device state via", "")
+Rel(message_broker, device_service, "Triggers rules from", "")
+Rel(device_service, message_broker, "Publishes device commands to", "")
+Rel(message_broker, device_management, "Updates device state via", "")
 
-Rel(device_service, device_db, "Reads/Writes", "SQL")
+Rel(device_management, device_db, "Reads/Writes", "SQL")
 Rel(telemetry_service, telemetry_db, "Saves readings to", "SQL")
 Rel(user_service, user_db, "Reads/Writes", "SQL")
 

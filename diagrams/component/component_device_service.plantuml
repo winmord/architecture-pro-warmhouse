@@ -1,23 +1,21 @@
 @startuml
 !include ../C4_Component.puml
 
-title Component Diagram: Smart Device Lifecycle Management
+title Component Diagram: Smart Device Service
 
-Container(device_service, "Smart Device Lifecycle Management", "Go", "Device registration and state")
+Container(device_service, "Smart Device Service", "Java", "Scenario execution")
 
-System_Boundary(device_service_boundary, "Device Service") {
-    Component(api, "REST API", "Go HTTP", "API for device management")
-    Component(manager, "Device Manager", "Go", "Management business logic")
-    Component(repository, "Repository", "GORM", "Database access")
+System_Boundary(orchestrator_boundary, "Device Service") {
+    Component(api, "REST API", "Spring MVC", "API for scenario management")
+    Component(engine, "Rules Engine", "Java", "Scenario execution")
+    Component(dispatcher, "Dispatcher", "Java", "Command dispatching")
 }
 
-ContainerDb(device_db, "Smart Device Database", "PostgreSQL", "External Database")
 ContainerQueue(message_broker, "Asynchronous Event Bus", "RabbitMQ", "External broker")
 
-Rel(api, manager, "Calls", "")
-Rel(manager, repository, "Uses", "")
-Rel(repository, device_db, "Reads/Writes", "SQL")
+Rel(api, engine, "Manages scenarios", "")
+Rel(engine, dispatcher, "Sends commands", "")
 
-Rel(manager, message_broker, "Publishes state events", "AMQP")
-Rel(message_broker, manager, "Receives device commands", "AMQP")
+Rel(message_broker, engine, "Triggers rules", "AMQP")
+Rel(dispatcher, message_broker, "Publishes commands", "AMQP")
 @enduml

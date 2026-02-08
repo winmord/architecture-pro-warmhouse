@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  title: Device Management API
+  description: Device Lifecycle Management Service
+  version: 1.0.0
+servers:
+  - url: https://warmhouse.com/api/v1
+    description: Production server
+
+paths:
+  /devices:
+    get:
+      summary: Get user's device list
+      tags:
+        - Devices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: include_status
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: device_type
+          in: query
+          schema:
+            type: string
+            enum: [thermostat, light, outlet, sensor, gate_controller, camera]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [online, offline, error]
+      responses:
+        '200':
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+
+    post:
+      summary: Register new device
+      tags:
+        - Devices
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeviceRequest'
+      responses:
+        '201':
+          description: Device successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          description: Invalid device data
+
+  /devices/{deviceId}:
+    get:
+      summary: Get device information
+      tags:
+        - Devices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Device information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '404':
+          description: Device not found
+
+    patch:
+      summary: Update device information
+      tags:
+        - Devices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceRequest'
+      responses:
+        '200':
+          description: Device updated
+        '403':
+          description: No permission to update device
+
+    delete:
+      summary: Delete device
+      tags:
+        - Devices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Device successfully deleted
+        '404':
+          description: Device not found
+
+  /devices/{deviceId}/status:
+    get:
+      summary: Get current device status
+      tags:
+        - Devices
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Device status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                  last_seen:
+                    type: string
+                    format: date-time
+                  details:
+                    type: object
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        external_id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [thermostat, light, outlet, sensor, gate_controller, camera]
+        protocol:
+          type: string
+          enum: [mqtt, zigbee, zwave, wifi]
+        status:
+          type: string
+          enum: [online, offline, error]
+        location:
+          type: string
+        connected_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+        configuration:
+          type: object
+
+    CreateDeviceRequest:
+      type: object
+      required:
+        - external_id
+        - name
+        - type
+        - protocol
+      properties:
+        external_id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        protocol:
+          type: string
+        model:
+          type: string
+        manufacturer:
+          type: string
+        location:
+          type: string
+        configuration:
+          type: object
+
+    UpdateDeviceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+        configuration:
+          type: object

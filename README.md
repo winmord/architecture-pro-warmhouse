@@ -52,8 +52,8 @@
 **Диаграмма компонентов (Components)**
 
 ![component_diagram](diagrams/component/component_device_gateway.png)
+![component_diagram](diagrams/component/component_device_management.png)
 ![component_diagram](diagrams/component/component_device_service.png)
-![component_diagram](diagrams/component/component_orchestrator_service.png)
 ![component_diagram](diagrams/component/component_telemetry_service.png)
 ![component_diagram](diagrams/component/component_user_service.png)
 ![component_diagram](diagrams/component/component_web_app.png)
@@ -78,9 +78,9 @@
 
 ### 2. Документация API
 
-- [device_service](openapi/device_service.yaml)
+- [device_service](openapi/device_management.yaml)
 - [message_brocker](openapi/message_brocker.yaml)
-- [orchestrator_service](openapi/orchestrator_service.yaml)
+- [orchestrator_service](openapi/device_service.yaml)
 - [telemetry_service](openapi/telemetry_service.yaml)
 - [user_service_proto](openapi/user_service.proto)
 - [user_service](openapi/user_service.yaml)

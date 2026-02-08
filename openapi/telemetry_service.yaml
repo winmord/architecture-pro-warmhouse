@@ -4,7 +4,7 @@ info:
   description: Telemetry Data Collection and Storage Service
   version: 1.0.0
 servers:
-  - url: https://api.warmhouse.ru/telemetry/v1
+  - url: https://warmhouse.com/api/v1
     description: Production server
 
 paths:

@@ -6,7 +6,7 @@ info:
     Uses gRPC for internal communication and REST for administrative tasks.
   version: 1.0.0
 servers:
-  - url: https://api.warmhouse.ru/user/v1
+  - url: https://warmhouse.com/api/v1
     description: Production server
 
 paths:
