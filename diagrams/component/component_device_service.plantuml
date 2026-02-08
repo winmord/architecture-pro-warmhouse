@@ -3,11 +3,11 @@
 
 title Component Diagram: Smart Device Service
 
-Container(device_service, "Smart Device Service", "Java", "Scenario execution")
+Container(device_service, "Smart Device Service", "Java", "Execution of user commands and scenarios")
 
 System_Boundary(orchestrator_boundary, "Device Service") {
-    Component(api, "REST API", "Spring MVC", "API for scenario management")
-    Component(engine, "Rules Engine", "Java", "Scenario execution")
+    Component(api, "REST API", "Spring MVC", "API for scenarios and commands management")
+    Component(engine, "Rules Engine", "Java", "Scenario and command execution")
     Component(dispatcher, "Dispatcher", "Java", "Command dispatching")
 }
 

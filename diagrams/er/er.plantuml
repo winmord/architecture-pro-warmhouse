@@ -19,28 +19,39 @@ entity "Device" {
   *user_id : UUID <<FK>>
   --
   external_id : VARCHAR(100) <<UNIQUE>>
-  name : VARCHAR(255) <<NOT NULL>>
-  type : ENUM('thermostat', 'light', 'outlet', 'sensor', 'gate_controller', 'camera') <<NOT NULL>>
-  protocol : ENUM('mqtt', 'zigbee', 'zwave', 'wifi') <<NOT NULL>>
+  name : VARCHAR(100) <<NOT NULL>>
+  type : VARCHAR(50) <<NOT NULL>>
+  protocol : VARCHAR(50) <<NOT NULL>>
   model : VARCHAR(100)
   manufacturer : VARCHAR(100)
   location : VARCHAR(255)
   status : ENUM('online', 'offline', 'error') <<NOT NULL>> <<DEFAULT 'offline'>>
-  connected_at : TIMESTAMP <<NOT NULL>>
+  created_at : TIMESTAMP <<NOT NULL>>
   last_seen_at : TIMESTAMP
-  configuration : JSON
 }
 
-entity "SensorReading" {
+entity "Sensor" {
   *id : BIGINT <<PK>>
   *device_id : UUID <<FK>>
   --
-  reading_type : ENUM('temperature', 'humidity', 'brightness', 'motion', 'power_consumption') <<NOT NULL>>
-  value : DECIMAL(10,2) <<NOT NULL>>
+  name : VARCHAR(100) <<NOT NULL>>
+  type : VARCHAR(50) <<NOT NULL>>
+  value : FLOAT DEFAULT 0
   unit : VARCHAR(20)
-  recorded_at : TIMESTAMP <<NOT NULL>>
-  accuracy : DECIMAL(5,2)
-  metadata : JSON
+  status: VARCHAR(20) NOT NULL DEFAULT 'inactive'
+  last_updated: TIMESTAMP <<NOT NULL>> <<DEFAULT NOW()>>
+  created_at: TIMESTAMP <<NOT NULL>> <<DEFAULT NOW()>>
+}
+
+entity "DeviceEvent" {
+  *id : BIGINT <<PK>>
+  *device_id : UUID <<FK>>
+  --
+  event_type : ENUM('status_changed', 'command_sent', 'command_executed', 'error') <<NOT NULL>>
+  event_data : JSON <<NOT NULL>>
+  created_at : TIMESTAMP <<NOT NULL>>
+  is_read : BOOLEAN <<DEFAULT false>>
+  severity : ENUM('low', 'medium', 'high', 'critical')
 }
 
 entity "Scenario" {
@@ -69,17 +80,6 @@ entity "ScenarioRule" {
   is_active : BOOLEAN <<NOT NULL>> <<DEFAULT true>>
 }
 
-entity "DeviceEvent" {
-  *id : BIGINT <<PK>>
-  *device_id : UUID <<FK>>
-  --
-  event_type : ENUM('status_changed', 'command_sent', 'command_executed', 'error') <<NOT NULL>>
-  event_data : JSON <<NOT NULL>>
-  created_at : TIMESTAMP <<NOT NULL>>
-  is_read : BOOLEAN <<DEFAULT false>>
-  severity : ENUM('low', 'medium', 'high', 'critical')
-}
-
 entity "DeviceCommand" {
   *id : UUID <<PK>>
   *device_id : UUID <<FK>>
@@ -97,7 +97,7 @@ entity "DeviceCommand" {
 
 
 User ||--o{ Device : "owns"
-Device ||--o{ SensorReading : "generates"
+Device ||--o{ Sensor : "generates"
 User ||--o{ Scenario : "creates"
 Scenario ||--o{ ScenarioRule : "contains"
 Device ||--o{ DeviceEvent : "generates"

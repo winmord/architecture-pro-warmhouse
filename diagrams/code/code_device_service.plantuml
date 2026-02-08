@@ -1,82 +1,108 @@
 @startuml
-title Device Service Code Diagram
+title Smart Device Service Code Diagram
 
-class DeviceServiceApplication {
+class SmartDeviceServiceApplication {
 + main(String[] args)
 }
 
-class DeviceService {
-- devices: Map<String, Device>
+class DeviceCommandService {
+- commandRepository: CommandRepository
+- rulesEngine: RulesEngine
+- commandPublisher: CommandPublisher
++ sendCommand(deviceId, command, parameters, source)
++ getCommandStatus(commandId)
++ updateCommandStatus(commandId, status, result)
+}
+
+class ScenarioService {
+- scenarioRepository: ScenarioRepository
+- rulesEngine: RulesEngine
++ createScenario(userId, name, type, config)
++ updateScenario(scenarioId, updateRequest)
++ executeScenario(scenarioId)
++ getScenarios(userId)
+}
+
+class RulesEngine {
+- conditionEvaluator: ConditionEvaluator
+- actionExecutor: ActionExecutor
++ evaluateAndExecute(rules, triggerData)
++ processDeviceEvent(deviceId, eventType, data)
++ processDeviceStateChange(deviceId, oldState, newState)
+}
+
+class CommandPublisher {
 - rabbitTemplate: RabbitTemplate
-+ createDevice(userId, request)
-+ getUserDevices(userId, filters)
-+ updateDeviceStatus(deviceId, statusUpdate)
-+ publishDeviceEvent(deviceId, eventType, data)
++ publishCommand(deviceId, command, parameters, source)
++ publishScenarioCommands(scenarioId, actions)
 }
 
-class DeviceController {
-- deviceService: DeviceService
-+ getDevices(userId, includeStatus, deviceType, status)
-+ createDevice(userId, request)
-+ getDevice(userId, deviceId)
-+ updateDevice(userId, deviceId, request)
-+ deleteDevice(userId, deviceId)
-+ getDeviceStatus(userId, deviceId)
+class DeviceCommandController {
+- deviceCommandService: DeviceCommandService
++ sendCommand(request)
++ getCommandStatus(commandId)
 }
 
-class DeviceEventListener {
-- deviceService: DeviceService
-+ handleDeviceCommand(deviceCommand)
-+ handleScenarioTrigger(scenarioTrigger)
+class ScenarioController {
+- scenarioService: ScenarioService
++ createScenario(request)
++ updateScenario(scenarioId, request)
++ executeScenario(scenarioId)
++ getScenarios(userId)
 }
 
-class DeviceEventPublisher {
-+ publishDeviceCreated(device)
-+ publishDeviceStatusChanged(deviceId, oldStatus, newStatus)
-+ publishDeviceEvent(event)
-}
-
-class Device {
-+ id: String
-+ userId: String
-+ externalId: String
-+ name: String
-+ type: String
-+ protocol: String
-+ status: String
-+ location: String
-+ connectedAt: LocalDateTime
-+ lastSeenAt: LocalDateTime
-}
-
-class CreateDeviceRequest {
-+ externalId: String
-+ name: String
-+ type: String
-+ protocol: String
-+ location: String
+class DeviceEventConsumer {
+- rulesEngine: RulesEngine
++ handleDeviceStatusEvent(event)
++ handleDeviceCommandAck(event)
 }
 
 class DeviceCommand {
-+ commandId: String
++ id: String
 + deviceId: String
 + command: String
 + parameters: Map<String, Object>
-+ priority: Integer
-+ source: String
++ sourceType: String
++ status: String
++ sentAt: LocalDateTime
+}
+
+class Scenario {
++ id: String
++ userId: String
++ name: String
++ type: String
++ isActive: Boolean
++ rules: List<ScenarioRule>
+}
+
+class SendCommandRequest {
++ deviceId: String
++ command: String
++ parameters: Map<String, Object>
++ sourceType: String
 + sourceId: String
 }
 
-DeviceServiceApplication --> DeviceController : creates
-DeviceServiceApplication --> DeviceService : creates
-DeviceServiceApplication --> DeviceEventListener : creates
-DeviceServiceApplication --> DeviceEventPublisher : creates
+SmartDeviceServiceApplication --> DeviceCommandController : creates
+SmartDeviceServiceApplication --> ScenarioController : creates
+SmartDeviceServiceApplication --> DeviceCommandService : creates
+SmartDeviceServiceApplication --> ScenarioService : creates
+SmartDeviceServiceApplication --> RulesEngine : creates
+SmartDeviceServiceApplication --> CommandPublisher : creates
+SmartDeviceServiceApplication --> DeviceEventConsumer : creates
 
-DeviceController --> DeviceService : calls
-DeviceEventListener --> DeviceService : calls
-DeviceService --> DeviceEventPublisher : calls
-DeviceService --> Device : uses
-DeviceController --> CreateDeviceRequest : uses
-DeviceEventListener --> DeviceCommand : uses
+DeviceCommandController --> DeviceCommandService : calls
+ScenarioController --> ScenarioService : calls
 
+DeviceCommandService --> RulesEngine : calls
+DeviceCommandService --> CommandPublisher : calls
+ScenarioService --> RulesEngine : calls
+RulesEngine --> CommandPublisher : calls
+
+DeviceEventConsumer --> RulesEngine : calls
+
+DeviceCommandController --> SendCommandRequest : uses
+DeviceCommandService --> DeviceCommand : uses
+ScenarioService --> Scenario : uses
 @enduml

@@ -1,30 +1,73 @@
 openapi: 3.0.3
 info:
-  title: Device Service API
-  description: Automation Scenarios Management Service
+  title: Smart Device Service API
+  description: API for executing user commands and smart home scenarios
   version: 1.0.0
 servers:
   - url: https://warmhouse.com/api/v1
-    description: Production server
+    description: Smart Device Service
 
 paths:
+  /commands:
+    post:
+      tags: [Commands]
+      summary: Send command to device
+      operationId: sendDeviceCommand
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendCommandRequest'
+      responses:
+        '202':
+          description: Command accepted for execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Device not found or unavailable
+  /commands/{commandId}:
+    get:
+      tags: [Commands]
+      summary: Get command status
+      operationId: getCommandStatus
+      parameters:
+        - name: commandId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Command information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceCommand'
+        '404':
+          description: Command not found
   /scenarios:
     get:
-      summary: Get user's scenario list
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
+      tags: [Scenarios]
+      summary: Get user scenarios
+      operationId: getUserScenarios
       parameters:
-        - name: is_active
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: activeOnly
           in: query
           schema:
             type: boolean
-        - name: scenario_type
-          in: query
-          schema:
-            type: string
-            enum: [manual, automatic, scheduled]
+            default: true
       responses:
         '200':
           description: List of scenarios
@@ -34,13 +77,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Scenario'
-
     post:
+      tags: [Scenarios]
       summary: Create new scenario
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
+      operationId: createScenario
       requestBody:
         required: true
         content:
@@ -54,39 +94,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Scenario'
-        '400':
-          description: Invalid scenario data
-
   /scenarios/{scenarioId}:
-    get:
-      summary: Get scenario information
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: scenarioId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Scenario information
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Scenario'
-        '404':
-          description: Scenario not found
-
     put:
+      tags: [Scenarios]
       summary: Update scenario
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
+      operationId: updateScenario
       parameters:
         - name: scenarioId
           in: path
@@ -105,13 +117,10 @@ paths:
           description: Scenario updated
         '404':
           description: Scenario not found
-
     delete:
+      tags: [Scenarios]
       summary: Delete scenario
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
+      operationId: deleteScenario
       parameters:
         - name: scenarioId
           in: path
@@ -122,14 +131,13 @@ paths:
       responses:
         '204':
           description: Scenario deleted
-
+        '404':
+          description: Scenario not found
   /scenarios/{scenarioId}/execute:
     post:
+      tags: [Scenarios]
       summary: Execute scenario manually
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
+      operationId: executeScenario
       parameters:
         - name: scenarioId
           in: path
@@ -145,22 +153,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  execution_id:
+                  executionId:
                     type: string
                     format: uuid
                   status:
                     type: string
-                    example: "pending"
-        '404':
-          description: Scenario not found
-
-  /scenarios/{scenarioId}/toggle:
+                    enum: [pending, running, completed, failed]
+  /scenarios/{scenarioId}/rules:
     post:
-      summary: Enable/disable scenario
-      tags:
-        - Scenarios
-      security:
-        - BearerAuth: []
+      tags: [Rules]
+      summary: Add rule to scenario
+      operationId: addScenarioRule
       parameters:
         - name: scenarioId
           in: path
@@ -173,25 +176,42 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                is_active:
-                  type: boolean
+              $ref: '#/components/schemas/CreateRuleRequest'
       responses:
-        '200':
-          description: Scenario status changed
-        '404':
-          description: Scenario not found
-
-  /executions/{executionId}:
-    get:
-      summary: Get scenario execution status
-      tags:
-        - Executions
-      security:
-        - BearerAuth: []
+        '201':
+          description: Rule added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScenarioRule'
+  /scenarios/{scenarioId}/rules/{ruleId}:
+    delete:
+      tags: [Rules]
+      summary: Delete rule from scenario
+      operationId: deleteScenarioRule
       parameters:
-        - name: executionId
+        - name: scenarioId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Rule deleted
+  /devices/{deviceId}/state:
+    get:
+      tags: [Device State]
+      summary: Get current device state
+      operationId: getDeviceState
+      parameters:
+        - name: deviceId
           in: path
           required: true
           schema:
@@ -199,45 +219,149 @@ paths:
             format: uuid
       responses:
         '200':
-          description: Execution status
+          description: Device state
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  execution_id:
-                    type: string
-                  scenario_id:
-                    type: string
-                  status:
-                    type: string
-                    enum: [pending, running, completed, failed, canceled]
-                  started_at:
-                    type: string
-                    format: date-time
-                  completed_at:
-                    type: string
-                    format: date-time
-                  result:
-                    type: object
+                $ref: '#/components/schemas/DeviceState'
         '404':
-          description: Execution not found
-
+          description: Device state not found in cache
 components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
   schemas:
+    SendCommandRequest:
+      type: object
+      required: [deviceId, command, sourceType]
+      properties:
+        deviceId:
+          type: string
+          format: uuid
+        command:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+        sourceType:
+          type: string
+          enum: [user, scenario, system]
+        sourceId:
+          type: string
+          format: uuid
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 10
+          default: 0
+    CreateScenarioRequest:
+      type: object
+      required: [userId, name, type]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        type:
+          type: string
+          enum: [manual, automatic, scheduled]
+        isActive:
+          type: boolean
+          default: true
+        priority:
+          type: integer
+          default: 0
+        config:
+          type: object
+          additionalProperties: true
+    UpdateScenarioRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        isActive:
+          type: boolean
+        priority:
+          type: integer
+    CreateRuleRequest:
+      type: object
+      required: [conditionType, conditionConfig, actionConfig, executionOrder]
+      properties:
+        conditionType:
+          type: string
+          enum: [time, device, weather, combined]
+        conditionConfig:
+          type: object
+          additionalProperties: true
+        actionConfig:
+          type: object
+          additionalProperties: true
+        executionOrder:
+          type: integer
+          minimum: 0
+        delaySeconds:
+          type: integer
+          minimum: 0
+        isActive:
+          type: boolean
+          default: true
+    CommandResponse:
+      type: object
+      properties:
+        commandId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, rejected]
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    DeviceCommand:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [user, scenario, system]
+        sourceId:
+          type: string
+          format: uuid
+        command:
+          type: string
+        parameters:
+          type: object
+        status:
+          type: string
+          enum: [sent, delivered, executed, failed, canceled]
+        sentAt:
+          type: string
+          format: date-time
+        executedAt:
+          type: string
+          format: date-time
+        result:
+          type: object
+        priority:
+          type: integer
     Scenario:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        user_id:
+        userId:
           type: string
           format: uuid
         name:
@@ -247,105 +371,81 @@ components:
         type:
           type: string
           enum: [manual, automatic, scheduled]
-        is_active:
+        isActive:
           type: boolean
         priority:
           type: integer
-        created_at:
+        createdAt:
           type: string
           format: date-time
-        updated_at:
+        updatedAt:
           type: string
           format: date-time
+        config:
+          type: object
         rules:
           type: array
           items:
             $ref: '#/components/schemas/ScenarioRule'
-
     ScenarioRule:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        condition_type:
+        scenarioId:
+          type: string
+          format: uuid
+        conditionType:
           type: string
           enum: [time, device, weather, combined]
-        condition_config:
+        conditionConfig:
           type: object
-        action_config:
+        actionConfig:
           type: object
-        execution_order:
+        executionOrder:
           type: integer
-        is_active:
+        delaySeconds:
+          type: integer
+        isActive:
           type: boolean
-
-    CreateScenarioRequest:
-      type: object
-      required:
-        - name
-        - type
-        - rules
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-        type:
-          type: string
-        is_active:
-          type: boolean
-          default: true
-        priority:
-          type: integer
-          default: 0
-        rules:
-          type: array
-          items:
-            $ref: '#/components/schemas/CreateRuleRequest'
-
-    CreateRuleRequest:
-      type: object
-      required:
-        - condition_type
-        - condition_config
-        - action_config
-      properties:
-        condition_type:
-          type: string
-        condition_config:
-          type: object
-        action_config:
-          type: object
-        execution_order:
-          type: integer
-        delay_seconds:
-          type: integer
-
-    UpdateScenarioRequest:
+    DeviceState:
       type: object
       properties:
-        name:
+        deviceId:
           type: string
-        description:
+          format: uuid
+        status:
           type: string
-        is_active:
-          type: boolean
-        priority:
-          type: integer
-        rules:
-          type: array
-          items:
-            $ref: '#/components/schemas/UpdateRuleRequest'
-
-    UpdateRuleRequest:
-      type: object
-      properties:
-        condition_config:
+          enum: [online, offline, error]
+        lastSeenAt:
+          type: string
+          format: date-time
+        attributes:
           type: object
-        action_config:
-          type: object
-        execution_order:
-          type: integer
-        is_active:
-          type: boolean
+          additionalProperties: true
+        cachedAt:
+          type: string
+          format: date-time
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - BearerAuth: []
