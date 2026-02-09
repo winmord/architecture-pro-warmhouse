@@ -1,10 +1,13 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
+	"smarthome/db"
+	"smarthome/models"
+	"smarthome/services"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -25,8 +28,8 @@ var (
 	rabbitCh   *amqp.Channel
 )
 
-func InitializeRabbitMQ() (*amqp.Connection, *amqp.Channel) {
-	conn, err := amqp.Dial("amqp://user:pass@localhost:5672/")
+func InitializeRabbitMQ(db *db.DB, temperatureService *services.TemperatureService) (*amqp.Connection, *amqp.Channel) {
+	conn, err := amqp.Dial("amqp://user:pass@rabbitmq:5672/")
 	if err != nil {
 		log.Printf("%s: %v", "Failed to connect to RabbitMQ", err)
 		return nil, nil
@@ -87,7 +90,7 @@ func InitializeRabbitMQ() (*amqp.Connection, *amqp.Channel) {
 	rabbitConn = conn
 	rabbitCh = ch
 
-	go startMessageConsumer()
+	go startMessageConsumer(db, temperatureService)
 
 	fmt.Println("Connected to RabbitMQ")
 	fmt.Println("Listening for device commands...")
@@ -95,7 +98,7 @@ func InitializeRabbitMQ() (*amqp.Connection, *amqp.Channel) {
 	return conn, ch
 }
 
-func startMessageConsumer() {
+func startMessageConsumer(db *db.DB, temperatureService *services.TemperatureService) {
 	if rabbitCh == nil {
 		log.Println("RabbitMQ channel is not initialized")
 		return
@@ -116,7 +119,7 @@ func startMessageConsumer() {
 	}
 
 	for msg := range messages {
-		go handleCommand(rabbitCh, msg.Body)
+		go handleCommand(db, temperatureService, msg.Body)
 	}
 }
 
@@ -130,7 +133,7 @@ func CloseRabbitMQ() {
 	log.Println("RabbitMQ connection closed")
 }
 
-func handleCommand(ch *amqp.Channel, body []byte) {
+func handleCommand(db *db.DB, temperatureService *services.TemperatureService, body []byte) {
 	log.Printf("Received command: %s", string(body))
 
 	var cmd DeviceCommandMessage
@@ -139,58 +142,62 @@ func handleCommand(ch *amqp.Channel, body []byte) {
 		return
 	}
 
+	if cmd.Command == "create_sensor" {
+		CreateSensor(db, cmd.DeviceID, cmd.Parameters)
+	} else if cmd.Command == "get_all_sensors" {
+		GetSensors(db, temperatureService, cmd.DeviceID)
+	} else {
+		log.Println("Not implemented yet")
+	}
+
 	log.Printf("Processing command: ID=%s, Device=%s, Command=%s, Priority=%d",
 		cmd.CommandID, cmd.DeviceID, cmd.Command, cmd.Priority)
-
-	sendTelemetry(ch, cmd.DeviceID)
 }
 
-func sendTelemetry(ch *amqp.Channel, deviceID string) {
+func CreateSensor(db *db.DB, deviceID string, parameters map[string]interface{}) {
+	var sensorCreate models.SensorCreate
+	sensorCreate.Name = parameters["name"].(string)
+	sensorCreate.Type = models.SensorType(parameters["type"].(string))
+	sensorCreate.Location = parameters["location"].(string)
+	sensorCreate.Unit = parameters["unit"].(string)
 
-	telemetryTypes := []string{"temperature", "humidity", "brightness", "power_consumption"}
-	units := map[string]string{
-		"temperature":       "C",
-		"humidity":          "%",
-		"brightness":        "lux",
-		"power_consumption": "W",
+	sensor, err := db.CreateSensor(context.Background(), sensorCreate)
+	if err == nil {
+		sendTelemetry(deviceID, sensor)
 	}
+}
 
-	readings := []map[string]interface{}{}
-	for _, telemetryType := range telemetryTypes {
-		value := 20.0 + float64(time.Now().UnixNano()%100)/10
-		if telemetryType == "humidity" {
-			value = 40.0 + float64(time.Now().UnixNano()%30)
-		} else if telemetryType == "brightness" {
-			value = 300.0 + float64(time.Now().UnixNano()%700)
-		} else if telemetryType == "power_consumption" {
-			value = 50.0 + float64(time.Now().UnixNano()%150)
+func GetSensors(db *db.DB, temperatureService *services.TemperatureService, deviceID string) {
+	sensors, err := db.GetSensors(context.Background())
+	if err == nil {
+		for i, sensor := range sensors {
+			if sensor.Type == models.Temperature {
+				tempData, err := temperatureService.GetTemperatureByID(fmt.Sprintf("%d", sensor.ID))
+				if err == nil {
+					sensors[i].Value = tempData.Value
+					sensors[i].Status = tempData.Status
+					sensors[i].LastUpdated = tempData.Timestamp
+					log.Printf("Updated temperature data for sensor %d from external API", sensor.ID)
+					sendTelemetry(deviceID, sensors[i])
+				} else {
+					log.Printf("Failed to fetch temperature data for sensor %d: %v", sensor.ID, err)
+				}
+			}
 		}
-
-		readings = append(readings, map[string]interface{}{
-			"type":  telemetryType,
-			"value": value,
-			"unit":  units[telemetryType],
-		})
 	}
+}
 
-	/*c.JSON(http.StatusOK, gin.H{
-		"location":    tempData.Location,
-		"value":       tempData.Value,
-		"unit":        tempData.Unit,
-		"status":      tempData.Status,
-		"timestamp":   tempData.Timestamp,
-		"description": tempData.Description,
-	})*/
-
+func sendTelemetry(deviceID string, sensor models.Sensor) {
 	telemetry := map[string]interface{}{
 		"device_id": deviceID,
-
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"type":      sensor.Type,
+		"value":     sensor.Value,
+		"unit":      sensor.Unit,
 	}
 
 	body, _ := json.Marshal(telemetry)
 
-	err := ch.Publish(
+	err := rabbitCh.Publish(
 		"device.exchange",
 		"device.telemetry",
 		false,
@@ -204,8 +211,4 @@ func sendTelemetry(ch *amqp.Channel, deviceID string) {
 	} else {
 		fmt.Printf("Sent telemetry for device: %s\n", deviceID)
 	}
-}
-
-func generateID() string {
-	return fmt.Sprintf("id-%d", time.Now().UnixNano())
 }

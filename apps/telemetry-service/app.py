@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -7,6 +8,12 @@ from typing import List, Optional
 
 import aio_pika
 from fastapi import FastAPI, Query, HTTPException
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 class Storage:
@@ -63,13 +70,12 @@ class RabbitConsumer:
 
     async def start(self):
         try:
-            rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
-            rabbitmq_url = f"amqp://user:pass@{rabbitmq_host}:5672/"
+            rabbitmq_url = f"amqp://user:pass@rabbitmq:5672/"
 
             connection = await aio_pika.connect_robust(rabbitmq_url)
             channel = await connection.channel()
 
-            exchange = await channel.declare_exchange("device.exchange", aio_pika.ExchangeType.TOPIC)
+            exchange = await channel.declare_exchange("device.exchange", aio_pika.ExchangeType.TOPIC, durable=True)
             queue = await channel.declare_queue("telemetry.queue")
             await queue.bind(exchange, routing_key="device.telemetry")
 
@@ -84,21 +90,19 @@ class RabbitConsumer:
         except Exception as e:
             print(f"RabbitMQ error: {e}")
 
-    async def handle_message(self, body: str):
+    @staticmethod
+    async def handle_message(body: str):
         try:
             data = json.loads(body)
             device_id = data.get("device_id")
-            readings = data.get("readings", [])
+            telemetry_type = data.get("type")
+            unit = data.get("unit")
+            value = data.get("value")
 
-            for reading in readings:
-                reading_type = reading.get("type", "unknown")
-                value = reading.get("value")
-                unit = reading.get("unit", "")
+            if value is not None:
+                storage.add(device_id, telemetry_type, float(value), unit)
 
-                if value is not None:
-                    storage.add(device_id, reading_type, float(value), unit)
-
-            print(f"Saved {len(readings)} readings for device {device_id}")
+            print(f"Saved telemetry readings for device {device_id}")
 
         except Exception as e:
             print(f"Message error: {e}")
@@ -119,40 +123,22 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/telemetry")
-async def receive_telemetry(device_id: str, reading_type: str, value: float, unit: str = ""):
-    item = storage.add(device_id, reading_type, value, unit)
-    return {"message": "Data saved", "id": item["id"]}
-
-
-@app.get("/telemetry/{device_id}")
+@app.get("/api/v1/telemetry/{device_id}")
 async def get_telemetry(
         device_id: str,
         type: Optional[str] = Query(None, alias="reading_type"),
         limit: int = Query(1000, ge=1, le=10000)
 ):
+    logger.info(f"GET /telemetry/{device_id} - type: {type}, limit: {limit}")
     data = storage.get_by_device(device_id, type, limit)
     if not data:
         raise HTTPException(status_code=404, detail="No data found")
     return data
 
 
-@app.get("/telemetry/stats")
-async def get_stats(
-        device_ids: str = Query(..., description="Comma-separated device IDs"),
-        reading_type: str = Query(...)
-):
-    device_list = device_ids.split(",")
-    stats = storage.get_stats(device_list, reading_type)
-    return {
-        "device_ids": device_list,
-        "reading_type": reading_type,
-        "statistics": stats
-    }
-
-
 @app.get("/health")
 async def health():
+    logger.info(f"GET /health/")
     return {
         "status": "healthy",
         "data_count": len(storage.data),
@@ -180,4 +166,10 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8083)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8083,
+        log_level="info",
+        access_log=True
+    )

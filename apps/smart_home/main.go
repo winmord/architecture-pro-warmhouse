@@ -46,7 +46,7 @@ func main() {
 	apiRoutes := router.Group("/api/v1")
 
 	// RabbitMQ integration
-	rabbitConn, rabbitChannel := integration.InitializeRabbitMQ()
+	rabbitConn, rabbitChannel := integration.InitializeRabbitMQ(database, temperatureService)
 	if rabbitConn != nil && rabbitChannel != nil {
 		defer integration.CloseRabbitMQ()
 		log.Println("RabbitMQ initialized successfully")
