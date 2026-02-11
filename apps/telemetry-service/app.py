@@ -79,7 +79,7 @@ class RabbitConsumer:
             queue = await channel.declare_queue("telemetry.queue")
             await queue.bind(exchange, routing_key="device.telemetry")
 
-            print("Connected to RabbitMQ")
+            logger.info("Connected to RabbitMQ")
 
             async with queue.iterator() as queue_iter:
                 async for message in queue_iter:
@@ -88,7 +88,7 @@ class RabbitConsumer:
                         await self.handle_message(body)
 
         except Exception as e:
-            print(f"RabbitMQ error: {e}")
+            logger.error(f"RabbitMQ error: {e}")
 
     @staticmethod
     async def handle_message(body: str):
@@ -102,22 +102,22 @@ class RabbitConsumer:
             if value is not None:
                 storage.add(device_id, telemetry_type, float(value), unit)
 
-            print(f"Saved telemetry readings for device {device_id}")
+            logger.info(f"Saved telemetry readings for device {device_id}")
 
         except Exception as e:
-            print(f"Message error: {e}")
+            logger.error(f"Message error: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting Telemetry Service...")
+    logger.info("Starting Telemetry Service...")
 
     consumer = RabbitConsumer()
     asyncio.create_task(consumer.start())
 
     yield
 
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 
 app = FastAPI(lifespan=lifespan)

@@ -1,8 +1,8 @@
 package org.practicum.deviceservice.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.practicum.deviceservice.model.CommandRequest;
 import org.practicum.deviceservice.model.DeviceCommand;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -12,15 +12,19 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@Slf4j
 public class CommandService {
 
-    @Autowired
-    private CommandPublisher commandPublisher;
+    private final CommandPublisher commandPublisher;
 
     private final Map<String, DeviceCommand> commandStore = new ConcurrentHashMap<>();
 
+    public CommandService(CommandPublisher commandPublisher) {
+        this.commandPublisher = commandPublisher;
+    }
+
     public DeviceCommand processCommand(CommandRequest request) {
-        System.out.println("Processing command for device: " + request.getDeviceId());
+        log.info("Processing command for device: {}", request.getDeviceId());
 
         String commandId = UUID.randomUUID().toString();
 
@@ -51,7 +55,7 @@ public class CommandService {
         if (command != null) {
             command.setStatus(status);
             commandStore.put(commandId, command);
-            System.out.println("Updated command " + commandId + " to status: " + status);
+            log.info("Updated command {} to status: {}", commandId, status);
         }
     }
 }

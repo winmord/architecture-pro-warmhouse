@@ -1,5 +1,6 @@
 package org.practicum.deviceservice.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.practicum.deviceservice.model.DeviceCommand;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class CommandPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -39,10 +41,9 @@ public class CommandPublisher {
             String jsonMessage = objectMapper.writeValueAsString(message);
             rabbitTemplate.convertAndSend(exchange, routingKey, jsonMessage);
 
-            System.out.println("Command published to RabbitMQ: " + command.getId() +
-                    " for device: " + command.getDeviceId());
+            log.info("Command published to RabbitMQ: {} for device: {}", command.getId(), command.getDeviceId());
         } catch (Exception e) {
-            System.out.println("Failed to publish command");
+            log.error("Failed to publish command");
         }
     }
 }
