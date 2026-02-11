@@ -96,7 +96,7 @@ entity "DeviceCommand" {
 }
 
 
-User ||--o{ Device : "owns"
+User }o--o{ Device : "owns/belongs"
 Device ||--o{ Sensor : "generates"
 User ||--o{ Scenario : "creates"
 Scenario ||--o{ ScenarioRule : "contains"
