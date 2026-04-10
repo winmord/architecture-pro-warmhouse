@@ -1,0 +1,90 @@
+{
+	"info": {
+		"_postman_id": "88886b10-f46c-4233-a150-5a148a3d0e6d",
+		"name": "MVP",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "25928485"
+	},
+	"item": [
+		{
+			"name": "Create Sensor",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"deviceId\": \"thermostat-001\",\r\n    \"command\": \"create_sensor\",\r\n    \"parameters\": {\r\n      \"name\": \"Living Room Temperature\",\r\n      \"type\": \"temperature\",\r\n      \"location\": \"Living Room\",\r\n      \"unit\": \"°C\"\r\n    },\r\n    \"sourceType\": \"user\",\r\n    \"sourceId\": \"user-123\"\r\n  }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8082/api/v1/commands"
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Sensors",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"deviceId\": \"thermostat-001\",\r\n    \"command\": \"get_all_sensors\",\r\n    \"parameters\": {},\r\n    \"sourceType\": \"user\",\r\n    \"sourceId\": \"user-123\"\r\n  }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "http://localhost:8082/api/v1/commands"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Telemetry",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8083/api/v1/telemetry/thermostat-001?reading_type=temperature&limit=10",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8083",
+					"path": [
+						"api",
+						"v1",
+						"telemetry",
+						"thermostat-001"
+					],
+					"query": [
+						{
+							"key": "reading_type",
+							"value": "temperature"
+						},
+						{
+							"key": "limit",
+							"value": "10"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

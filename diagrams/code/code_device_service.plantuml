@@ -1,0 +1,108 @@
+@startuml
+title Smart Device Service Code Diagram
+
+class SmartDeviceServiceApplication {
++ main(String[] args)
+}
+
+class DeviceCommandService {
+- commandRepository: CommandRepository
+- rulesEngine: RulesEngine
+- commandPublisher: CommandPublisher
++ sendCommand(deviceId, command, parameters, source)
++ getCommandStatus(commandId)
++ updateCommandStatus(commandId, status, result)
+}
+
+class ScenarioService {
+- scenarioRepository: ScenarioRepository
+- rulesEngine: RulesEngine
++ createScenario(userId, name, type, config)
++ updateScenario(scenarioId, updateRequest)
++ executeScenario(scenarioId)
++ getScenarios(userId)
+}
+
+class RulesEngine {
+- conditionEvaluator: ConditionEvaluator
+- actionExecutor: ActionExecutor
++ evaluateAndExecute(rules, triggerData)
++ processDeviceEvent(deviceId, eventType, data)
++ processDeviceStateChange(deviceId, oldState, newState)
+}
+
+class CommandPublisher {
+- rabbitTemplate: RabbitTemplate
++ publishCommand(deviceId, command, parameters, source)
++ publishScenarioCommands(scenarioId, actions)
+}
+
+class DeviceCommandController {
+- deviceCommandService: DeviceCommandService
++ sendCommand(request)
++ getCommandStatus(commandId)
+}
+
+class ScenarioController {
+- scenarioService: ScenarioService
++ createScenario(request)
++ updateScenario(scenarioId, request)
++ executeScenario(scenarioId)
++ getScenarios(userId)
+}
+
+class DeviceEventConsumer {
+- rulesEngine: RulesEngine
++ handleDeviceStatusEvent(event)
++ handleDeviceCommandAck(event)
+}
+
+class DeviceCommand {
++ id: String
++ deviceId: String
++ command: String
++ parameters: Map<String, Object>
++ sourceType: String
++ status: String
++ sentAt: LocalDateTime
+}
+
+class Scenario {
++ id: String
++ userId: String
++ name: String
++ type: String
++ isActive: Boolean
++ rules: List<ScenarioRule>
+}
+
+class SendCommandRequest {
++ deviceId: String
++ command: String
++ parameters: Map<String, Object>
++ sourceType: String
++ sourceId: String
+}
+
+SmartDeviceServiceApplication --> DeviceCommandController : creates
+SmartDeviceServiceApplication --> ScenarioController : creates
+SmartDeviceServiceApplication --> DeviceCommandService : creates
+SmartDeviceServiceApplication --> ScenarioService : creates
+SmartDeviceServiceApplication --> RulesEngine : creates
+SmartDeviceServiceApplication --> CommandPublisher : creates
+SmartDeviceServiceApplication --> DeviceEventConsumer : creates
+
+DeviceCommandController --> DeviceCommandService : calls
+ScenarioController --> ScenarioService : calls
+
+DeviceCommandService --> RulesEngine : calls
+DeviceCommandService --> CommandPublisher : calls
+ScenarioService --> RulesEngine : calls
+RulesEngine --> CommandPublisher : calls
+
+DeviceEventConsumer --> RulesEngine : calls
+
+DeviceCommandController --> SendCommandRequest : uses
+DeviceCommandService --> DeviceCommand : uses
+ScenarioService --> Scenario : uses
+@enduml

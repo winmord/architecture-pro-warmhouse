@@ -1,0 +1,21 @@
+@startuml
+!include ../C4_Component.puml
+
+title Component Diagram: Smart Device Service
+
+Container(device_service, "Smart Device Service", "Java", "Execution of user commands and scenarios")
+
+System_Boundary(orchestrator_boundary, "Device Service") {
+    Component(api, "REST API", "Spring MVC", "API for scenarios and commands management")
+    Component(engine, "Rules Engine", "Java", "Scenario and command execution")
+    Component(dispatcher, "Dispatcher", "Java", "Command dispatching")
+}
+
+ContainerQueue(message_broker, "Asynchronous Event Bus", "RabbitMQ", "External broker")
+
+Rel(api, engine, "Manages scenarios", "")
+Rel(engine, dispatcher, "Sends commands", "")
+
+Rel(message_broker, engine, "Triggers rules", "AMQP")
+Rel(dispatcher, message_broker, "Publishes commands", "AMQP")
+@enduml

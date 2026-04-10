@@ -1,0 +1,201 @@
+openapi: 3.0.3
+info:
+  title: Telemetry Service API
+  description: Telemetry Data Collection and Storage Service
+  version: 1.0.0
+servers:
+  - url: https://warmhouse.com/api/v1
+    description: Production server
+
+paths:
+  /telemetry:
+    post:
+      summary: Send telemetry data
+      tags:
+        - Telemetry
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryData'
+      responses:
+        '202':
+          description: Data accepted for processing
+        '400':
+          description: Invalid data
+
+  /telemetry/devices/{deviceId}:
+    get:
+      summary: Get device telemetry
+      tags:
+        - Telemetry
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: reading_type
+          in: query
+          schema:
+            type: string
+            enum: [temperature, humidity, brightness, motion, power_consumption]
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: aggregation
+          in: query
+          schema:
+            type: string
+            enum: [raw, hourly, daily, weekly, monthly]
+            default: raw
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 1000
+            maximum: 10000
+      responses:
+        '200':
+          description: Telemetry data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TelemetryReading'
+        '404':
+          description: Device not found
+
+  /telemetry/aggregated:
+    get:
+      summary: Aggregated statistics
+      tags:
+        - Telemetry
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: device_ids
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: reading_type
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, yesterday, last_7_days, last_30_days, this_month, custom]
+            default: last_7_days
+        - name: aggregation
+          in: query
+          schema:
+            type: string
+            enum: [avg, min, max, sum, count]
+            default: avg
+      responses:
+        '200':
+          description: Aggregated statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  device_id:
+                    type: string
+                  reading_type:
+                    type: string
+                  aggregated_value:
+                    type: number
+                  unit:
+                    type: string
+                  period_start:
+                    type: string
+                    format: date-time
+                  period_end:
+                    type: string
+                    format: date-time
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    TelemetryData:
+      type: object
+      required:
+        - device_id
+        - readings
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+          description: Data collection time (optional, defaults to current time)
+        readings:
+          type: array
+          items:
+            $ref: '#/components/schemas/SingleReading'
+
+    SingleReading:
+      type: object
+      required:
+        - type
+        - value
+      properties:
+        type:
+          type: string
+          enum: [temperature, humidity, brightness, motion, power_consumption]
+        value:
+          type: number
+        unit:
+          type: string
+          default: ""
+        metadata:
+          type: object
+
+    TelemetryReading:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        device_id:
+          type: string
+          format: uuid
+        reading_type:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        recorded_at:
+          type: string
+          format: date-time
+        accuracy:
+          type: number

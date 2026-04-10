@@ -1,0 +1,14 @@
+@startuml
+!include ../C4_Context.puml
+title «Warm house» company context diagram
+
+Person(user, "User", "The client who connects the devices, sets up the scenarios and manages the house")
+System(ecosystem, "«Warm house» company system", "A smart home management platform")
+
+System_Ext(partner_device, "Partner device", "Smart devices (thermostat, light bulb, gate drive, etc.)")
+
+Rel(user, ecosystem, "Manages the house through", "Web")
+Rel(ecosystem, partner_device, "Manages", "Standard protocols for communicating with smart devices")
+Rel(partner_device, ecosystem, "Sends device events to", "Standard protocols for communicating with smart devices")
+
+@enduml
